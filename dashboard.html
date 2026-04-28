@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Paper Paste Tab Canvas</title>
+    <link rel="stylesheet" href="./dashboard.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <div class="eyebrow">PAPER PASTE</div>
+          <h1>Tab Canvas</h1>
+          <p class="muted">
+            将当前浏览器中的所有标签页整理到一张画布上，并生成标题、摘要、链接和网页截图。
+          </p>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="field-label">同步状态</div>
+          <div id="status" class="status-card">等待同步</div>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="field-label">卡片说明</div>
+          <ul class="legend">
+            <li>标题：标签页标题</li>
+            <li>摘要：基于 HTML 发送给 LLM 生成</li>
+            <li>链接：原标签页地址</li>
+            <li>快照：标签页截图</li>
+          </ul>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <div class="workspace-topbar">
+          <div class="workspace-heading">
+            <div class="eyebrow">CANVAS</div>
+            <div id="canvas-meta" class="workspace-title">0 个标签页卡片</div>
+            <div id="canvas-hint" class="muted">拖动卡片可重新布局</div>
+          </div>
+          <div class="workspace-topbar-actions">
+            <div class="toolbar-field compact-field">
+              <label class="field-label" for="search-input">搜索卡片</label>
+              <input id="search-input" type="search" placeholder="搜索标题 / 摘要关键词" />
+            </div>
+            <div class="toolbar-field compact-field">
+              <label class="field-label" for="cluster-mode">聚类视图</label>
+              <select id="cluster-mode">
+                <option value="none">不聚类</option>
+                <option value="window">按窗口聚合</option>
+                <option value="domain">按域名聚合</option>
+                <option value="content">按内容聚合</option>
+              </select>
+            </div>
+            <div class="toolbar-field grow-field">
+              <label class="field-label" for="import-url">导入链接</label>
+              <div class="inline-input-group">
+                <input id="import-url" type="url" placeholder="请输入网页链接，例如 https://example.com" />
+                <button id="import-link" class="secondary-button">导入链接</button>
+              </div>
+            </div>
+            <button id="open-settings" class="secondary-button icon-button" type="button">系统设置</button>
+          </div>
+        </div>
+        <div class="floating-actions">
+          <button id="sync-tabs" class="primary-button">同步全部标签页</button>
+          <button id="sync-current-window" class="secondary-button">仅同步当前窗口</button>
+          <button id="export-image" class="secondary-button">导出 PNG</button>
+          <button id="export-json" class="secondary-button">导出 JSON</button>
+          <button id="clear-canvas" class="secondary-button danger-button">清空画布</button>
+        </div>
+        <div id="canvas" class="canvas"></div>
+      </main>
+    </div>
+
+    <div id="settings-modal" class="modal-shell" hidden>
+      <div id="settings-backdrop" class="modal-backdrop"></div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div class="modal-header">
+          <div>
+            <div class="eyebrow">SETTINGS</div>
+            <h2 id="settings-title">系统设置</h2>
+          </div>
+          <button id="close-settings" class="ghost-button" type="button" aria-label="关闭设置">关闭</button>
+        </div>
+        <div class="modal-body">
+          <div class="toolbar-field">
+            <label class="field-label" for="settings-provider">模型提供商</label>
+            <select id="settings-provider">
+              <option value="siliconflow">硅基流动</option>
+              <option value="gemini">Google Gemini</option>
+              <option value="openrouter">OpenRouter</option>
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="custom">自定义 OpenAI 兼容</option>
+            </select>
+          </div>
+          <div class="toolbar-field">
+            <label class="field-label" for="settings-model">模型名称</label>
+            <input id="settings-model" type="text" placeholder="例如 gpt-4.1-mini / claude / gemini" />
+          </div>
+          <div class="toolbar-field">
+            <label class="field-label" for="settings-endpoint">接口地址</label>
+            <input id="settings-endpoint" type="url" placeholder="请输入模型接口地址" />
+          </div>
+          <div class="toolbar-field">
+            <label class="field-label" for="settings-api-key">模型密钥</label>
+            <input id="settings-api-key" type="password" placeholder="请输入模型 API Key" />
+          </div>
+          <div id="settings-provider-hint" class="muted compact-text">
+            未配置模型密钥时，导入链接和同步标签页会自动唤起当前弹窗。
+          </div>
+          <div class="modal-actions">
+            <button id="save-key" class="primary-button" type="button">保存设置</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="edit-modal" class="modal-shell" hidden>
+      <div id="edit-backdrop" class="modal-backdrop"></div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="edit-title">
+        <div class="modal-header">
+          <div>
+            <div class="eyebrow">EDIT CARD</div>
+            <h2 id="edit-title">编辑卡片</h2>
+          </div>
+          <button id="close-edit" class="ghost-button" type="button" aria-label="关闭编辑">关闭</button>
+        </div>
+        <div class="modal-body">
+          <div class="toolbar-field">
+            <label class="field-label" for="edit-title-input">标题</label>
+            <input id="edit-title-input" type="text" />
+          </div>
+          <div class="toolbar-field">
+            <label class="field-label" for="edit-summary-input">摘要</label>
+            <textarea id="edit-summary-input" rows="6"></textarea>
+          </div>
+          <div class="toolbar-field">
+            <label class="field-label" for="edit-url-input">链接</label>
+            <input id="edit-url-input" type="url" />
+          </div>
+          <div class="modal-actions">
+            <button id="save-edit" class="primary-button" type="button">保存修改</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <template id="tab-card-template">
+      <article class="tab-card">
+        <div class="card-header">
+          <div class="card-title-wrap">
+            <div class="card-title"></div>
+            <div class="card-window"></div>
+          </div>
+          <div class="card-actions">
+            <button class="card-edit-button" type="button" aria-label="编辑卡片">编辑</button>
+            <button class="card-delete-button" type="button" aria-label="删除卡片">删除</button>
+          </div>
+        </div>
+        <div class="card-shot-wrap">
+          <img class="card-shot" alt="网页截图" />
+          <div class="shot-placeholder">暂无截图</div>
+        </div>
+        <div class="card-section">
+          <div class="section-label">摘要</div>
+          <div class="card-summary"></div>
+          <button class="summary-toggle" type="button" hidden>展开</button>
+        </div>
+        <div class="card-section">
+          <div class="section-label">链接</div>
+          <a class="card-link" target="_blank" rel="noreferrer"></a>
+        </div>
+      </article>
+    </template>
+
+    <script type="module" src="./dashboard.js"></script>
+  </body>
+  </html>

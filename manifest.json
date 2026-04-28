@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Paper Paste Tab Canvas",
+  "version": "0.1.0",
+  "description": "将所有 Chrome 标签页整理到一张画布上，并基于网页 HTML 与截图生成摘要卡片。",
+  "permissions": [
+    "tabs",
+    "storage",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "https://api.siliconflow.cn/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Open Paper Paste Canvas"
+  }
+}
