@@ -11,7 +11,8 @@
   ],
   "host_permissions": [
     "<all_urls>",
-    "https://api.siliconflow.cn/*"
+    "https://api.siliconflow.cn/*",
+    "https://api.b.ai/*"
   ],
   "background": {
     "service_worker": "background.js",

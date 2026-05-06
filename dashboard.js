@@ -47,6 +47,12 @@ const MODEL_PROVIDERS = {
     endpoint: "https://openrouter.ai/api/v1/chat/completions",
     model: "openai/gpt-4.1-mini"
   },
+  bai: {
+    label: "B.AI",
+    protocol: "openai",
+    endpoint: "https://api.b.ai/v1/chat/completions",
+    model: "gpt-4.1-mini"
+  },
   custom: {
     label: "自定义 OpenAI 兼容",
     protocol: "openai",
